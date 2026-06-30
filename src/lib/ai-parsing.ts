@@ -39,7 +39,7 @@ const RAW_PREVIEW_LIMIT = 500;
  *   ```
  * or plain triple backticks without a language tag.
  */
-function stripCodeFences(raw: string): string {
+export function stripCodeFences(raw: string): string {
   const trimmed = raw.trim();
   const fenceMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
   return fenceMatch ? fenceMatch[1].trim() : trimmed;

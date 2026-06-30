@@ -44,6 +44,14 @@ export const AdVariationSchema = z.object({
   reasoning: z.string(),
 });
 
+// The contest MVP promises exactly 5 generated ad variations, and the
+// dashboard's Generated Ads section is built around that count. Enforcing
+// it here means a Gemini response with 3 or 7 ads is treated the same as
+// any other malformed response: a schema validation failure that falls back
+// to sampleAnalysis.ads, rather than something the UI has to handle as a
+// variable-length case.
+export const AdVariationListSchema = z.array(AdVariationSchema).length(5);
+
 export const ShieldFindingSchema = z.object({
   id: z.string(),
   adVariationId: z.string(),
@@ -75,13 +83,41 @@ export const KpiSummarySchema = z.object({
   pipelineHealth: z.number(),
 });
 
+// Per-stage status for one pipeline step (Spyglass, ad generation, or
+// Shield). "skipped" covers both pure sample mode (nothing was attempted)
+// and stages that come after one that already fell back (e.g. ad generation
+// is "skipped" when Spyglass itself failed, since we never call Gemini for
+// ads in that case).
+export const StageSourceSchema = z.enum(["live", "fallback", "skipped"]);
+
+export const StageStatusSchema = z.object({
+  source: StageSourceSchema,
+  fallbackReason: z.string().optional(),
+});
+
 // Reports whether a result came from the sample fixture or a live Gemini
-// call, and why a fallback happened if it did. Optional so Stage 1's
-// sampleAnalysis (which has no meta field) still validates unchanged.
+// call, and why a fallback happened if it did.
+//
+// `source`, `usedFallback`, and `fallbackReason` are the original Stage 3a
+// fields, kept with their original meaning so the existing dashboard notice
+// ("Aegis used sample fallback: ...") keeps working unmodified — it reads
+// `usedFallback` and `fallbackReason` as a rollup across the whole pipeline.
+//
+// `stages` is the new, optional, additive piece: a per-stage breakdown so
+// the underlying data (and any future UI) can tell "Spyglass was live but
+// ads fell back" apart from "everything fell back". Optional so any older
+// result without it still validates.
 export const AnalysisMetaSchema = z.object({
   source: z.enum(["sample", "live"]),
   usedFallback: z.boolean(),
   fallbackReason: z.string().optional(),
+  stages: z
+    .object({
+      spyglass: StageStatusSchema,
+      ads: StageStatusSchema,
+      shield: StageStatusSchema,
+    })
+    .optional(),
 });
 
 export const AegisAnalysisResultSchema = z.object({
