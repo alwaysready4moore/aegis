@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { InputCard } from "@/components/dashboard/InputCard";
@@ -11,6 +11,20 @@ import { AdsSection } from "@/components/ads/AdsSection";
 import { ShieldSection } from "@/components/shield/ShieldSection";
 import type { AegisAnalysisResult, Platform, SectionId } from "@/lib/types";
 
+// A live run does Spyglass -> ad generation -> Shield review as three
+// sequential Gemini calls, which can take 40-50 seconds total. This is a
+// simple rotation through canned status lines while isLoading is true — not
+// real per-stage progress (the route doesn't stream stage completions back),
+// just enough to keep the wait from feeling frozen. If/when the route is
+// changed to stream progress, this can be replaced with real status.
+const LOADING_MESSAGES = [
+  "Spyglass is reading the page…",
+  "Aegis is drafting ad variations…",
+  "Shield is checking for risk…",
+  "Running the full Aegis pipeline — this can take up to a minute.",
+];
+const LOADING_MESSAGE_INTERVAL_MS = 6000;
+
 export default function DashboardPage() {
   const [url, setUrl] = useState("");
   const [platform, setPlatform] = useState<Platform>("meta");
@@ -19,6 +33,18 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<SectionId>("dashboard");
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingMessageIndex(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setLoadingMessageIndex((i) => (i + 1) % LOADING_MESSAGES.length);
+    }, LOADING_MESSAGE_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
   // useLiveData=true (Analyze button): sends sourceUrl/platform/pageText to
   // the route. If pageText is blank, the route itself falls back to sample
@@ -99,7 +125,15 @@ export default function DashboardPage() {
         </div>
 
         {isLoading && (
-          <p className="font-body text-sm text-aegis-gray mb-8">Running the Aegis pipeline…</p>
+          <div className="mb-8 flex items-center gap-3 rounded-lg border border-aegis-border bg-aegis-card px-4 py-3">
+            <span
+              className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-aegis-teal"
+              aria-hidden="true"
+            />
+            <p className="font-body text-sm text-aegis-gray" role="status" aria-live="polite">
+              {LOADING_MESSAGES[loadingMessageIndex]}
+            </p>
+          </div>
         )}
 
         {error && (
