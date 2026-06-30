@@ -75,6 +75,15 @@ export const KpiSummarySchema = z.object({
   pipelineHealth: z.number(),
 });
 
+// Reports whether a result came from the sample fixture or a live Gemini
+// call, and why a fallback happened if it did. Optional so Stage 1's
+// sampleAnalysis (which has no meta field) still validates unchanged.
+export const AnalysisMetaSchema = z.object({
+  source: z.enum(["sample", "live"]),
+  usedFallback: z.boolean(),
+  fallbackReason: z.string().optional(),
+});
+
 export const AegisAnalysisResultSchema = z.object({
   id: z.string(),
   createdAt: z.string(),
@@ -84,4 +93,5 @@ export const AegisAnalysisResultSchema = z.object({
   ads: z.array(AdVariationSchema),
   shield: ShieldReviewSchema,
   kpi: KpiSummarySchema,
+  meta: AnalysisMetaSchema.optional(),
 });

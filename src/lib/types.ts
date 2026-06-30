@@ -10,6 +10,7 @@ import {
   ShieldReviewedAdSchema,
   ShieldReviewSchema,
   KpiSummarySchema,
+  AnalysisMetaSchema,
   AegisAnalysisResultSchema,
 } from "./schemas";
 
@@ -23,6 +24,7 @@ export type ShieldFinding = z.infer<typeof ShieldFindingSchema>;
 export type ShieldReviewedAd = z.infer<typeof ShieldReviewedAdSchema>;
 export type ShieldReview = z.infer<typeof ShieldReviewSchema>;
 export type KpiSummary = z.infer<typeof KpiSummarySchema>;
+export type AnalysisMeta = z.infer<typeof AnalysisMetaSchema>;
 export type AegisAnalysisResult = z.infer<typeof AegisAnalysisResultSchema>;
 
 // UI-only state for sidebar navigation / scroll tracking — not part of the
