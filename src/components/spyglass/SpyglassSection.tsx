@@ -22,7 +22,7 @@ function TagList({ items, tone }: { items: string[]; tone: "teal" | "aqua" | "gr
 
 export function SpyglassSection({ spyglass }: SpyglassSectionProps) {
   return (
-    <section className="mb-8">
+    <section id="spyglass-section" className="mb-8 scroll-mt-6">
       <SectionHeading
         title="Spyglass Analysis"
         description="What the competitor page is selling, to whom, and how."

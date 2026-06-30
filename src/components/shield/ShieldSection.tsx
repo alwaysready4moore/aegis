@@ -10,7 +10,7 @@ interface ShieldSectionProps {
 
 export function ShieldSection({ shield, ads }: ShieldSectionProps) {
   return (
-    <section className="mb-8">
+    <section id="shield-section" className="mb-8 scroll-mt-6">
       <SectionHeading
         title="Shield Review"
         description={`${shield.totalRisksChecked} risks checked · ${shield.saferAdsDelivered} safer ads ready to copy.`}

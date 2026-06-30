@@ -1,7 +1,11 @@
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
-export function DashboardHeader() {
+interface DashboardHeaderProps {
+  onNewPipeline: () => void;
+}
+
+export function DashboardHeader({ onNewPipeline }: DashboardHeaderProps) {
   return (
     <div className="flex items-start justify-between gap-4 mb-8">
       <div>
@@ -12,7 +16,7 @@ export function DashboardHeader() {
           Turn competitor landing pages into compliance-checked ad variations.
         </p>
       </div>
-      <Button variant="primary" className="shrink-0">
+      <Button variant="primary" className="shrink-0" onClick={onNewPipeline}>
         <Plus size={16} />
         New Pipeline
       </Button>
