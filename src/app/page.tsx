@@ -14,19 +14,33 @@ import type { AegisAnalysisResult, Platform, SectionId } from "@/lib/types";
 export default function DashboardPage() {
   const [url, setUrl] = useState("");
   const [platform, setPlatform] = useState<Platform>("meta");
+  const [pageText, setPageText] = useState("");
   const [result, setResult] = useState<AegisAnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<SectionId>("dashboard");
 
-  // Stage 1: both buttons hit the same stub route and get back the hardcoded
-  // sample fixture. The URL and platform fields are captured but not yet sent
-  // anywhere meaningful — that wiring happens once Firecrawl/Gemini land.
-  async function runAnalysis() {
+  // useLiveData=true (Analyze button): sends sourceUrl/platform/pageText to
+  // the route. If pageText is blank, the route itself falls back to sample
+  // data — that logic already lives server-side, so we don't duplicate it
+  // here.
+  //
+  // useLiveData=false (Try Sample Analysis button): sends no body at all,
+  // which guarantees the sample fixture comes back regardless of whatever
+  // is currently typed into the URL/platform/page text fields.
+  async function runAnalysis(useLiveData: boolean) {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/analyze", { method: "POST" });
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        ...(useLiveData
+          ? {
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ sourceUrl: url, platform, pageText }),
+            }
+          : {}),
+      });
       if (!res.ok) throw new Error("Analysis failed. Please try again.");
       const data: AegisAnalysisResult = await res.json();
       setResult(data);
@@ -52,6 +66,7 @@ export default function DashboardPage() {
   function handleNewPipeline() {
     setUrl("");
     setPlatform("general");
+    setPageText("");
     setResult(null);
     setError(null);
     setActiveSection("dashboard");
@@ -75,8 +90,11 @@ export default function DashboardPage() {
             onUrlChange={setUrl}
             platform={platform}
             onPlatformChange={setPlatform}
-            onAnalyze={runAnalysis}
-            onTrySample={runAnalysis}
+            pageText={pageText}
+            onPageTextChange={setPageText}
+            onAnalyze={() => runAnalysis(true)}
+            onTrySample={() => runAnalysis(false)}
+            isLoading={isLoading}
           />
         </div>
 
@@ -86,6 +104,15 @@ export default function DashboardPage() {
 
         {error && (
           <p className="font-body text-sm text-risk-high mb-8">{error}</p>
+        )}
+
+        {result?.meta?.usedFallback && (
+          <div className="mb-8 rounded-lg border border-aegis-gray/30 bg-aegis-gray/10 px-4 py-3">
+            <p className="font-body text-sm text-aegis-silver">
+              Aegis used sample fallback
+              {result.meta.fallbackReason ? `: ${result.meta.fallbackReason}` : "."}
+            </p>
+          </div>
         )}
 
         {result && (

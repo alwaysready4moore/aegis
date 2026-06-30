@@ -13,8 +13,11 @@ interface InputCardProps {
   onUrlChange: (value: string) => void;
   platform: Platform;
   onPlatformChange: (value: Platform) => void;
+  pageText: string;
+  onPageTextChange: (value: string) => void;
   onAnalyze: () => void;
   onTrySample: () => void;
+  isLoading: boolean;
 }
 
 export function InputCard({
@@ -22,8 +25,11 @@ export function InputCard({
   onUrlChange,
   platform,
   onPlatformChange,
+  pageText,
+  onPageTextChange,
   onAnalyze,
   onTrySample,
+  isLoading,
 }: InputCardProps) {
   return (
     <Card className="mb-8">
@@ -62,12 +68,31 @@ export function InputCard({
         ))}
       </div>
 
+      <label
+        htmlFor="manual-page-text"
+        className="font-body text-xs uppercase tracking-wide text-aegis-gray mb-2 block"
+      >
+        Manual Page Text
+      </label>
+      <p className="font-body text-xs text-aegis-gray/70 mb-2">
+        Paste landing page copy for a live Spyglass test. Firecrawl isn&apos;t wired up yet, so
+        this is the only way to run a real analysis — leave it blank to use sample data.
+      </p>
+      <textarea
+        id="manual-page-text"
+        value={pageText}
+        onChange={(e) => onPageTextChange(e.target.value)}
+        placeholder="Paste the competitor's landing page copy here (headline, body text, claims, CTA, etc.)"
+        rows={5}
+        className="w-full rounded-lg border border-aegis-border bg-aegis-black px-3 py-2.5 mb-6 font-body text-sm text-aegis-silver placeholder:text-aegis-gray/60 focus:outline-none focus:border-aegis-teal resize-y"
+      />
+
       <div className="flex flex-wrap gap-3">
-        <Button variant="primary" onClick={onAnalyze}>
+        <Button variant="primary" onClick={onAnalyze} disabled={isLoading}>
           <Search size={16} />
-          Analyze
+          {isLoading ? "Analyzing…" : "Analyze"}
         </Button>
-        <Button variant="secondary" onClick={onTrySample}>
+        <Button variant="secondary" onClick={onTrySample} disabled={isLoading}>
           Try Sample Analysis
         </Button>
       </div>
