@@ -6,7 +6,7 @@ import { formatPolicyRulesForPrompt, POLICY_DISCLAIMER } from "./policy-rules";
 // preamble — this is the first line of defense before parseAiJson() in
 // ai-parsing.ts strips fences as a second line of defense.
 const JSON_ONLY_INSTRUCTION = `
-Respond with raw JSON only. Do not include markdown code fences, comments, or any text outside the JSON object. The response must be valid JSON that can be parsed directly with JSON.parse().
+Respond with raw JSON only. Do not include markdown code fences, comments, explanations, or any text before or after the JSON — no preamble like "Here is the JSON:" and no closing remarks. The entire response body must be valid JSON that can be parsed directly with JSON.parse().
 `.trim();
 
 // ---------------------------------------------------------------------------

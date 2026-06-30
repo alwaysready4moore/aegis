@@ -4,11 +4,17 @@ import {
   AegisAnalysisResultSchema,
   SpyglassResultSchema,
   AdVariationListSchema,
+  ShieldReviewSchema,
 } from "@/lib/schemas";
 import { sampleAnalysis } from "@/lib/sample-data";
-import { buildSpyglassPrompt, buildAdGenerationPrompt } from "@/lib/prompts";
+import {
+  buildSpyglassPrompt,
+  buildAdGenerationPrompt,
+  buildShieldReviewPrompt,
+} from "@/lib/prompts";
 import { parseAiJson, stripCodeFences } from "@/lib/ai-parsing";
 import { generateJsonContent } from "@/lib/gemini";
+import { validateShieldReview } from "@/lib/shield-validation";
 import type {
   AegisAnalysisResult,
   AnalysisMeta,
@@ -16,6 +22,7 @@ import type {
   Platform,
   SpyglassResult,
   AdVariationList,
+  ShieldReview,
 } from "@/lib/types";
 
 interface AnalyzeRequestBody {
@@ -23,8 +30,9 @@ interface AnalyzeRequestBody {
   platform?: Platform;
   /**
    * Optional raw page text. Stage 3 uses this to test Spyglass + ad
-   * generation without Firecrawl — Stage 4 will populate this automatically
-   * from a scraped URL instead of requiring it in the request body.
+   * generation + Shield review without Firecrawl — Stage 4 will populate
+   * this automatically from a scraped URL instead of requiring it in the
+   * request body.
    */
   pageText?: string;
 }
@@ -207,10 +215,71 @@ export async function POST(request: Request) {
     });
   }
 
-  // Spyglass and ad generation both succeeded live. Shield is not wired yet
-  // (Stage 3d) — sample data fills it for now so the section still renders.
+  // Spyglass and ad generation both succeeded live — proceed to live Shield review.
   const liveAds: AdVariationList = adsParsed.data;
 
+  const shieldPrompt = buildShieldReviewPrompt({ ads: liveAds, platform });
+  const shieldCall = await generateJsonContent(shieldPrompt);
+
+  if (!shieldCall.success) {
+    return respond({
+      id: randomUUID(),
+      createdAt: new Date().toISOString(),
+      sourceUrl,
+      platform,
+      spyglass: liveSpyglass,
+      ads: liveAds,
+      shield: sampleAnalysis.shield,
+      kpi: sampleAnalysis.kpi,
+      meta: buildMeta(
+        "live",
+        LIVE,
+        LIVE,
+        fallback(`Shield: Gemini call failed: ${shieldCall.message}`)
+      ),
+    });
+  }
+
+  const shieldParsed = parseAiJson(shieldCall.text, ShieldReviewSchema);
+
+  if (!shieldParsed.success) {
+    const reason =
+      shieldParsed.error.stage === "json_parse"
+        ? `Shield: Gemini response was not valid JSON: ${shieldParsed.error.message}`
+        : `Shield: Gemini response did not match the expected shape: ${shieldParsed.error.message}`;
+    return respond({
+      id: randomUUID(),
+      createdAt: new Date().toISOString(),
+      sourceUrl,
+      platform,
+      spyglass: liveSpyglass,
+      ads: liveAds,
+      shield: sampleAnalysis.shield,
+      kpi: sampleAnalysis.kpi,
+      meta: buildMeta("live", LIVE, LIVE, fallback(reason)),
+    });
+  }
+
+  // Shield's shape is valid — now check it actually reviewed the right ads
+  // with phrases that really appear in them (see shield-validation.ts).
+  const liveShield: ShieldReview = shieldParsed.data;
+  const coverage = validateShieldReview(liveShield, liveAds);
+
+  if (!coverage.valid) {
+    return respond({
+      id: randomUUID(),
+      createdAt: new Date().toISOString(),
+      sourceUrl,
+      platform,
+      spyglass: liveSpyglass,
+      ads: liveAds,
+      shield: sampleAnalysis.shield,
+      kpi: sampleAnalysis.kpi,
+      meta: buildMeta("live", LIVE, LIVE, fallback(`Shield: ${coverage.reason}`)),
+    });
+  }
+
+  // Spyglass, ad generation, and Shield review all succeeded live.
   return respond({
     id: randomUUID(),
     createdAt: new Date().toISOString(),
@@ -218,8 +287,8 @@ export async function POST(request: Request) {
     platform,
     spyglass: liveSpyglass,
     ads: liveAds,
-    shield: sampleAnalysis.shield,
+    shield: liveShield,
     kpi: sampleAnalysis.kpi,
-    meta: buildMeta("live", LIVE, LIVE, SKIPPED),
+    meta: buildMeta("live", LIVE, LIVE, LIVE),
   });
 }
