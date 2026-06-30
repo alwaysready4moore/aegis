@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  min-height: 100vh;
+}
+
+::selection {
+  background-color: rgba(0, 209, 194, 0.25);
+}
