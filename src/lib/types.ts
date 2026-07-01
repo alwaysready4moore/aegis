@@ -13,6 +13,8 @@ import {
   KpiSummarySchema,
   StageSourceSchema,
   StageStatusSchema,
+  ExtractionSourceSchema,
+  ExtractionStatusSchema,
   AnalysisMetaSchema,
   AegisAnalysisResultSchema,
 } from "./schemas";
@@ -30,6 +32,8 @@ export type ShieldReview = z.infer<typeof ShieldReviewSchema>;
 export type KpiSummary = z.infer<typeof KpiSummarySchema>;
 export type StageSource = z.infer<typeof StageSourceSchema>;
 export type StageStatus = z.infer<typeof StageStatusSchema>;
+export type ExtractionSource = z.infer<typeof ExtractionSourceSchema>;
+export type ExtractionStatus = z.infer<typeof ExtractionStatusSchema>;
 export type AnalysisMeta = z.infer<typeof AnalysisMetaSchema>;
 export type AegisAnalysisResult = z.infer<typeof AegisAnalysisResultSchema>;
 

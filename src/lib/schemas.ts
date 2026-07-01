@@ -95,6 +95,19 @@ export const StageStatusSchema = z.object({
   fallbackReason: z.string().optional(),
 });
 
+// Page-text extraction has one more distinct state than the other stages:
+// text can come from the person typing it in manually, from a live
+// Firecrawl scrape, be skipped entirely (pure sample mode), or fall back to
+// sample data because a live attempt failed. "live"/"fallback"/"skipped"
+// alone can't express "manual" vs "firecrawl" as two different live paths,
+// so extraction gets its own small schema rather than reusing StageSourceSchema.
+export const ExtractionSourceSchema = z.enum(["manual", "firecrawl", "skipped", "fallback"]);
+
+export const ExtractionStatusSchema = z.object({
+  source: ExtractionSourceSchema,
+  fallbackReason: z.string().optional(),
+});
+
 // Reports whether a result came from the sample fixture or a live Gemini
 // call, and why a fallback happened if it did.
 //
@@ -103,16 +116,17 @@ export const StageStatusSchema = z.object({
 // ("Aegis used sample fallback: ...") keeps working unmodified — it reads
 // `usedFallback` and `fallbackReason` as a rollup across the whole pipeline.
 //
-// `stages` is the new, optional, additive piece: a per-stage breakdown so
-// the underlying data (and any future UI) can tell "Spyglass was live but
-// ads fell back" apart from "everything fell back". Optional so any older
-// result without it still validates.
+// `stages` is the additive piece: a per-stage breakdown so the underlying
+// data (and any future UI) can tell "extraction was live but Spyglass
+// failed" apart from "everything fell back". Optional so any older result
+// without it still validates.
 export const AnalysisMetaSchema = z.object({
   source: z.enum(["sample", "live"]),
   usedFallback: z.boolean(),
   fallbackReason: z.string().optional(),
   stages: z
     .object({
+      extraction: ExtractionStatusSchema,
       spyglass: StageStatusSchema,
       ads: StageStatusSchema,
       shield: StageStatusSchema,
