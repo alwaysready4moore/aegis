@@ -110,5 +110,5 @@ This was built as an MVP for a five-day build challenge, not a production app. T
 - **No auth, no database, no billing, no real ad platform integrations** — all left out on purpose, not from running out of time. None of them were needed to prove the core idea: a competitor URL in, a safer set of testable ads out.
 - **Sample mode isn't a placeholder feature — it's the parachute.** It exists so the demo works even if a live API call fails during judging, which is exactly the kind of failure a five-minute demo window can't afford.
 
-Live demo: *[add Vercel URL here once deployed]*
-Repo: *[this repo]*
+Live demo: https://aegis-bsof.vercel.app/
+Repo:  https://github.com/alwaysready4moore/aegis
