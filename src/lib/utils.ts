@@ -36,4 +36,5 @@ export const riskCategoryLabels: Record<RiskCategory, string> = {
   fear_based_hook: "Fear-based hook",
   platform_sensitive_wording: "Platform-sensitive wording",
   substantiation_required: "Substantiation required",
+  intellectual_property_risk: "Intellectual property risk",
 };

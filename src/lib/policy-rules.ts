@@ -113,6 +113,15 @@ export const policyRules: PolicyRule[] = [
       "Replace with a claim the advertiser can actually substantiate, or remove the authority reference entirely.",
     examplePatterns: ["doctor recommended", "clinically proven", "scientifically tested", "award-winning"],
   },
+  {
+    category: "intellectual_property_risk",
+    label: "Intellectual property risk",
+    description:
+      "Ad copy that names the competitor's brand, uses their trademarked terms, or closely mirrors their original slogan or marketing language rather than describing the advertiser's own offer in original words.",
+    guidance:
+      "Remove the competitor's brand name and trademarked terms. Rewrite the line in original language describing this advertiser's own product, rather than paraphrasing the competitor's copy closely enough that it reads as the same slogan.",
+    examplePatterns: ["[competitor brand name]", "as seen on [competitor]", "better than [competitor product]"],
+  },
 ];
 
 export function getPolicyRule(category: RiskCategory): PolicyRule | undefined {

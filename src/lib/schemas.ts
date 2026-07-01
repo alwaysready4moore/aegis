@@ -18,6 +18,7 @@ export const RiskCategorySchema = z.enum([
   "fear_based_hook",
   "platform_sensitive_wording",
   "substantiation_required",
+  "intellectual_property_risk",
 ]);
 
 export const SpyglassResultSchema = z.object({

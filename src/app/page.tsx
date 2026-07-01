@@ -3,7 +3,10 @@
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
+import { HowItWorksStrip } from "@/components/dashboard/HowItWorksStrip";
 import { InputCard } from "@/components/dashboard/InputCard";
+import { PipelineStatusBadges } from "@/components/dashboard/PipelineStatusBadges";
+import { FallbackNotice } from "@/components/dashboard/FallbackNotice";
 import { KpiCards } from "@/components/dashboard/KpiCards";
 import { PipelineFlow } from "@/components/dashboard/PipelineFlow";
 import { SpyglassSection } from "@/components/spyglass/SpyglassSection";
@@ -11,19 +14,21 @@ import { AdsSection } from "@/components/ads/AdsSection";
 import { ShieldSection } from "@/components/shield/ShieldSection";
 import type { AegisAnalysisResult, Platform, SectionId } from "@/lib/types";
 
-// A live run does Spyglass -> ad generation -> Shield review as three
-// sequential Gemini calls, which can take 40-50 seconds total. This is a
-// simple rotation through canned status lines while isLoading is true — not
-// real per-stage progress (the route doesn't stream stage completions back),
-// just enough to keep the wait from feeling frozen. If/when the route is
-// changed to stream progress, this can be replaced with real status.
+// A live run does extraction -> Spyglass -> ad generation -> Shield review as
+// sequential steps, which can take up to a minute total. This is a simple
+// rotation through canned status lines while isLoading is true — not real
+// per-stage progress (the route doesn't stream stage completions back), just
+// enough to keep the wait from feeling frozen.
 const LOADING_MESSAGES = [
-  "Spyglass is reading the page…",
+  "Reading the competitor page…",
+  "Spyglass is finding the angle…",
   "Aegis is drafting ad variations…",
   "Shield is checking for risk…",
-  "Running the full Aegis pipeline — this can take up to a minute.",
 ];
 const LOADING_MESSAGE_INTERVAL_MS = 6000;
+
+const FRIENDLY_ERROR_MESSAGE =
+  "Something went wrong while running the analysis. Please try again — Try Sample Analysis is a reliable fallback if the issue continues.";
 
 export default function DashboardPage() {
   const [url, setUrl] = useState("");
@@ -47,9 +52,9 @@ export default function DashboardPage() {
   }, [isLoading]);
 
   // useLiveData=true (Analyze button): sends sourceUrl/platform/pageText to
-  // the route. If pageText is blank, the route itself falls back to sample
-  // data — that logic already lives server-side, so we don't duplicate it
-  // here.
+  // the route. If pageText is blank, the route scrapes sourceUrl via
+  // Firecrawl instead — that logic lives server-side, so it isn't duplicated
+  // here. InputCard already prevents calling this with everything blank.
   //
   // useLiveData=false (Try Sample Analysis button): sends no body at all,
   // which guarantees the sample fixture comes back regardless of whatever
@@ -67,11 +72,13 @@ export default function DashboardPage() {
             }
           : {}),
       });
-      if (!res.ok) throw new Error("Analysis failed. Please try again.");
+      if (!res.ok) throw new Error("Request failed");
       const data: AegisAnalysisResult = await res.json();
       setResult(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } catch {
+      // Deliberately generic — never surface raw error objects, stack
+      // traces, or fetch failure messages in the UI.
+      setError(FRIENDLY_ERROR_MESSAGE);
     } finally {
       setIsLoading(false);
     }
@@ -111,6 +118,8 @@ export default function DashboardPage() {
         <div id="top" className="scroll-mt-6">
           <DashboardHeader onNewPipeline={handleNewPipeline} />
 
+          <HowItWorksStrip />
+
           <InputCard
             url={url}
             onUrlChange={setUrl}
@@ -140,14 +149,8 @@ export default function DashboardPage() {
           <p className="font-body text-sm text-risk-high mb-8">{error}</p>
         )}
 
-        {result?.meta?.usedFallback && (
-          <div className="mb-8 rounded-lg border border-aegis-gray/30 bg-aegis-gray/10 px-4 py-3">
-            <p className="font-body text-sm text-aegis-silver">
-              Aegis used sample fallback
-              {result.meta.fallbackReason ? `: ${result.meta.fallbackReason}` : "."}
-            </p>
-          </div>
-        )}
+        {result?.meta?.stages && <PipelineStatusBadges stages={result.meta.stages} />}
+        {result?.meta?.stages && <FallbackNotice stages={result.meta.stages} />}
 
         {result && (
           <>
