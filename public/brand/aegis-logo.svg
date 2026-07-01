@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 220" role="img" aria-labelledby="title desc">
+<title id="title">Aegis logo</title><desc id="desc">Aegis Creative Intelligence logo with stylized mark and wordmark.</desc>
+<rect width="720" height="220" rx="32" fill="none"/>
+<g transform="translate(24 30)">
+<rect width="160" height="160" rx="36" fill="#0B0F14" stroke="#00D1C2" stroke-width="4"/>
+<path d="M39 122L75 36C77 31 84 31 87 36L124 122" fill="none" stroke="#E6E8EB" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M56 94H104" fill="none" stroke="#00D1C2" stroke-width="12" stroke-linecap="round"/>
+<circle cx="110" cy="57" r="18" fill="none" stroke="#00D1C2" stroke-width="9"/>
+<path d="M122 70L137 85" fill="none" stroke="#00D1C2" stroke-width="9" stroke-linecap="round"/>
+<path d="M73 113L85 125L115 94" fill="none" stroke="#7CF7F0" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<g transform="translate(218 70)">
+<text x="0" y="48" font-family="Space Grotesk, Schibsted Grotesk, Inter, Arial, sans-serif" font-size="54" font-weight="800" letter-spacing="2" fill="#E6E8EB">AEGIS</text>
+<text x="3" y="89" font-family="Schibsted Grotesk, Inter, Arial, sans-serif" font-size="22" font-weight="500" letter-spacing="1.2" fill="#6B7280">CREATIVE INTELLIGENCE</text>
+<path d="M3 112H342" stroke="#1F2937" stroke-width="4" stroke-linecap="round"/>
+<path d="M3 112H118" stroke="#00D1C2" stroke-width="4" stroke-linecap="round"/>
+</g>
+</svg>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 180" role="img" aria-labelledby="title desc">
+<title id="title">Shield logo</title><desc id="desc">Shield logo for the risk review engine.</desc>
+<rect width="600" height="180" rx="28" fill="none"/>
+<g transform="translate(20 26)">
+<rect width="128" height="128" rx="30" fill="#0B0F14" stroke="#00D1C2" stroke-width="3"/>
+<path d="M64 22L100 36V64C100 89 86 110 64 122C42 110 28 89 28 64V36L64 22Z" fill="none" stroke="#E6E8EB" stroke-width="9" stroke-linejoin="round"/>
+<path d="M44 68L58 82L85 54" fill="none" stroke="#00D1C2" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<g transform="translate(178 60)">
+<text x="0" y="44" font-family="Space Grotesk, Schibsted Grotesk, Inter, Arial, sans-serif" font-size="46" font-weight="800" letter-spacing="1" fill="#E6E8EB">SHIELD</text>
+<text x="2" y="78" font-family="Schibsted Grotesk, Inter, Arial, sans-serif" font-size="19" font-weight="500" letter-spacing="1" fill="#6B7280">CHECKS THE RISK</text>
+</g>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+<title id="title">Aegis mark</title><desc id="desc">A stylized A mark combining a lens shape and validation check.</desc>
+<rect width="256" height="256" rx="56" fill="#0B0F14"/>
+<path d="M64 190L118 58C121 50 132 50 136 58L194 190" fill="none" stroke="#E6E8EB" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M90 144H159" fill="none" stroke="#00D1C2" stroke-width="18" stroke-linecap="round"/>
+<circle cx="166" cy="91" r="29" fill="none" stroke="#00D1C2" stroke-width="14"/>
+<path d="M184 112L207 135" fill="none" stroke="#00D1C2" stroke-width="14" stroke-linecap="round"/>
+<path d="M116 176L134 194L180 146" fill="none" stroke="#7CF7F0" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

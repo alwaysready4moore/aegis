@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
@@ -16,10 +17,20 @@ export function DashboardHeader({ onNewPipeline }: DashboardHeaderProps) {
           Turn competitor landing pages into compliance-checked ad variations.
         </p>
       </div>
-      <Button variant="primary" className="shrink-0" onClick={onNewPipeline}>
-        <Plus size={16} />
-        New Pipeline
-      </Button>
+
+      <div className="flex shrink-0 items-center gap-4">
+        <Link
+          href="/about"
+          className="font-body text-sm text-aegis-gray transition-colors hover:text-aegis-teal"
+        >
+          About
+        </Link>
+
+        <Button variant="primary" onClick={onNewPipeline}>
+          <Plus size={16} />
+          New Pipeline
+        </Button>
+      </div>
     </div>
   );
 }

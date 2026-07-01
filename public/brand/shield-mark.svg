@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+<title id="title">Shield mark</title><desc id="desc">A validation shield mark for risk review.</desc>
+<rect width="256" height="256" rx="56" fill="#0B0F14"/>
+<path d="M128 42L190 66V116C190 156 166 190 128 210C90 190 66 156 66 116V66L128 42Z" fill="none" stroke="#E6E8EB" stroke-width="16" stroke-linejoin="round"/>
+<path d="M93 125L118 150L165 101" fill="none" stroke="#00D1C2" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M128 61L172 78V115C172 144 155 169 128 185" fill="none" stroke="#7CF7F0" stroke-width="8" stroke-linecap="round" opacity="0.8"/>
+</svg>

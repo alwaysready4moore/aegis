@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+<title id="title">Spyglass mark</title><desc id="desc">A circular lens mark for Spyglass analysis.</desc>
+<rect width="256" height="256" rx="56" fill="#0B0F14"/>
+<circle cx="111" cy="105" r="54" fill="none" stroke="#00D1C2" stroke-width="16"/>
+<path d="M151 145L203 197" fill="none" stroke="#E6E8EB" stroke-width="18" stroke-linecap="round"/>
+<path d="M76 105C82 85 98 72 119 70" fill="none" stroke="#7CF7F0" stroke-width="12" stroke-linecap="round"/>
+<circle cx="111" cy="105" r="8" fill="#00D1C2"/>
+</svg>

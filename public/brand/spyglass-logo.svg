@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 180" role="img" aria-labelledby="title desc">
+<title id="title">Spyglass logo</title><desc id="desc">Spyglass logo for the page analysis engine.</desc>
+<rect width="640" height="180" rx="28" fill="none"/>
+<g transform="translate(20 26)">
+<rect width="128" height="128" rx="30" fill="#0B0F14" stroke="#00D1C2" stroke-width="3"/>
+<circle cx="58" cy="54" r="31" fill="none" stroke="#00D1C2" stroke-width="10"/>
+<path d="M82 78L111 107" fill="none" stroke="#E6E8EB" stroke-width="11" stroke-linecap="round"/>
+<path d="M39 54C42 43 51 36 63 35" fill="none" stroke="#7CF7F0" stroke-width="7" stroke-linecap="round"/>
+</g>
+<g transform="translate(178 60)">
+<text x="0" y="44" font-family="Space Grotesk, Schibsted Grotesk, Inter, Arial, sans-serif" font-size="46" font-weight="800" letter-spacing="1" fill="#E6E8EB">SPYGLASS</text>
+<text x="2" y="78" font-family="Schibsted Grotesk, Inter, Arial, sans-serif" font-size="19" font-weight="500" letter-spacing="1" fill="#6B7280">FINDS THE ANGLE</text>
+</g>
+</svg>
