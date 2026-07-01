@@ -1,4 +1,4 @@
-import { CircleDot } from "lucide-react";
+import Image from "next/image";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -26,8 +26,17 @@ export function SpyglassSection({ spyglass }: SpyglassSectionProps) {
       <SectionHeading
         title="Spyglass Analysis"
         description="What the competitor page is selling, to whom, and how."
-        icon={<CircleDot size={18} />}
+        icon={
+          <Image
+            src="/brand/spyglass-mark.svg"
+            alt=""
+            width={22}
+            height={22}
+            className="h-5 w-5"
+          />
+        }
       />
+
       <Card>
         <div className="grid md:grid-cols-2 gap-6 mb-6">
           <div>
@@ -38,6 +47,7 @@ export function SpyglassSection({ spyglass }: SpyglassSectionProps) {
               {spyglass.offerSummary}
             </p>
           </div>
+
           <div>
             <div className="font-body text-xs uppercase tracking-wide text-aegis-gray mb-1.5">
               Positioning summary
@@ -52,7 +62,9 @@ export function SpyglassSection({ spyglass }: SpyglassSectionProps) {
           <div className="font-body text-xs uppercase tracking-wide text-aegis-gray mb-1.5">
             Target audience
           </div>
-          <p className="font-body text-sm text-aegis-silver">{spyglass.targetAudience}</p>
+          <p className="font-body text-sm text-aegis-silver">
+            {spyglass.targetAudience}
+          </p>
         </div>
 
         <div className="grid sm:grid-cols-2 gap-6">
@@ -62,30 +74,35 @@ export function SpyglassSection({ spyglass }: SpyglassSectionProps) {
             </div>
             <TagList items={spyglass.hooks} tone="teal" />
           </div>
+
           <div>
             <div className="font-body text-xs uppercase tracking-wide text-aegis-gray mb-2">
               Emotional triggers
             </div>
             <TagList items={spyglass.emotionalTriggers} tone="aqua" />
           </div>
+
           <div>
             <div className="font-body text-xs uppercase tracking-wide text-aegis-gray mb-2">
               Claims
             </div>
             <TagList items={spyglass.claims} tone="gray" />
           </div>
+
           <div>
             <div className="font-body text-xs uppercase tracking-wide text-aegis-gray mb-2">
               Pain points
             </div>
             <TagList items={spyglass.painPoints} tone="gray" />
           </div>
+
           <div>
             <div className="font-body text-xs uppercase tracking-wide text-aegis-gray mb-2">
               CTAs
             </div>
             <TagList items={spyglass.ctas} tone="teal" />
           </div>
+
           <div>
             <div className="font-body text-xs uppercase tracking-wide text-aegis-gray mb-2">
               Creative opportunities
