@@ -1,168 +1,160 @@
-"use client";
+import Image from "next/image";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Search,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
+import { Card } from "@/components/ui/Card";
 
-import { useState, useEffect } from "react";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { DashboardHeader } from "@/components/layout/DashboardHeader";
-import { HowItWorksStrip } from "@/components/dashboard/HowItWorksStrip";
-import { InputCard } from "@/components/dashboard/InputCard";
-import { PipelineStatusBadges } from "@/components/dashboard/PipelineStatusBadges";
-import { FallbackNotice } from "@/components/dashboard/FallbackNotice";
-import { KpiCards } from "@/components/dashboard/KpiCards";
-import { PipelineFlow } from "@/components/dashboard/PipelineFlow";
-import { SpyglassSection } from "@/components/spyglass/SpyglassSection";
-import { AdsSection } from "@/components/ads/AdsSection";
-import { ShieldSection } from "@/components/shield/ShieldSection";
-import type { AegisAnalysisResult, Platform, SectionId } from "@/lib/types";
-
-// A live run does extraction -> Spyglass -> ad generation -> Shield review as
-// sequential steps, which can take up to a minute total. This is a simple
-// rotation through canned status lines while isLoading is true — not real
-// per-stage progress (the route doesn't stream stage completions back), just
-// enough to keep the wait from feeling frozen.
-const LOADING_MESSAGES = [
-  "Reading the competitor page…",
-  "Spyglass is finding the angle…",
-  "Aegis is drafting ad variations…",
-  "Shield is checking for risk…",
+const pipeline = [
+  {
+    icon: Search,
+    title: "Spyglass finds the angle",
+    body: "Aegis reads a competitor landing page and extracts the offer, audience, claims, hooks, CTAs, and positioning strategy.",
+  },
+  {
+    icon: Sparkles,
+    title: "Aegis drafts testable ads",
+    body: "The app turns the page analysis into five original ad variations, each built around a different creative angle.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Shield checks the risk",
+    body: "Shield reviews the generated ads for risky claims, sensitive wording, substantiation issues, and IP risk, then provides safer rewrites.",
+  },
 ];
-const LOADING_MESSAGE_INTERVAL_MS = 6000;
 
-const FRIENDLY_ERROR_MESSAGE =
-  "Something went wrong while running the analysis. Please try again — Try Sample Analysis is a reliable fallback if the issue continues.";
+const principles = [
+  "Working pipeline over feature sprawl",
+  "Fallback behavior instead of broken demos",
+  "Schema validation before trusting AI output",
+  "Clear risk triage, not legal advice",
+];
 
-export default function DashboardPage() {
-  const [url, setUrl] = useState("");
-  const [platform, setPlatform] = useState<Platform>("meta");
-  const [pageText, setPageText] = useState("");
-  const [result, setResult] = useState<AegisAnalysisResult | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<SectionId>("dashboard");
-  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
-
-  useEffect(() => {
-    if (!isLoading) {
-      setLoadingMessageIndex(0);
-      return;
-    }
-    const interval = setInterval(() => {
-      setLoadingMessageIndex((i) => (i + 1) % LOADING_MESSAGES.length);
-    }, LOADING_MESSAGE_INTERVAL_MS);
-    return () => clearInterval(interval);
-  }, [isLoading]);
-
-  // useLiveData=true (Analyze button): sends sourceUrl/platform/pageText to
-  // the route. If pageText is blank, the route scrapes sourceUrl via
-  // Firecrawl instead — that logic lives server-side, so it isn't duplicated
-  // here. InputCard already prevents calling this with everything blank.
-  //
-  // useLiveData=false (Try Sample Analysis button): sends no body at all,
-  // which guarantees the sample fixture comes back regardless of whatever
-  // is currently typed into the URL/platform/page text fields.
-  async function runAnalysis(useLiveData: boolean) {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        ...(useLiveData
-          ? {
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ sourceUrl: url, platform, pageText }),
-            }
-          : {}),
-      });
-      if (!res.ok) throw new Error("Request failed");
-      const data: AegisAnalysisResult = await res.json();
-      setResult(data);
-    } catch {
-      // Deliberately generic — never surface raw error objects, stack
-      // traces, or fetch failure messages in the UI.
-      setError(FRIENDLY_ERROR_MESSAGE);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  function scrollToElement(targetElementId: string) {
-    const el = document.getElementById(targetElementId);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }
-
-  function handleNavigate(section: SectionId, targetElementId: string) {
-    setActiveSection(section);
-    scrollToElement(targetElementId);
-  }
-
-  function handleNewPipeline() {
-    setUrl("");
-    setPlatform("general");
-    setPageText("");
-    setResult(null);
-    setError(null);
-    setActiveSection("dashboard");
-    scrollToElement("top");
-  }
-
+export default function AboutPage() {
   return (
-    <div className="flex min-h-screen">
-      <Sidebar
-        activeSection={activeSection}
-        hasResult={Boolean(result)}
-        onNavigate={handleNavigate}
-      />
-
-      <main className="flex-1 px-6 md:px-10 py-8 max-w-6xl mx-auto w-full">
-        <div id="top" className="scroll-mt-6">
-          <DashboardHeader onNewPipeline={handleNewPipeline} />
-
-          <HowItWorksStrip />
-
-          <InputCard
-            url={url}
-            onUrlChange={setUrl}
-            platform={platform}
-            onPlatformChange={setPlatform}
-            pageText={pageText}
-            onPageTextChange={setPageText}
-            onAnalyze={() => runAnalysis(true)}
-            onTrySample={() => runAnalysis(false)}
-            isLoading={isLoading}
-          />
+    <main className="min-h-screen bg-aegis-black px-6 py-10 text-aegis-silver">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-8">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 font-body text-sm text-aegis-gray transition-colors hover:text-aegis-teal"
+          >
+            <ArrowLeft size={16} />
+            Back to dashboard
+          </Link>
         </div>
 
-        {isLoading && (
-          <div className="mb-8 flex items-center gap-3 rounded-lg border border-aegis-border bg-aegis-card px-4 py-3">
-            <span
-              className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-aegis-teal"
-              aria-hidden="true"
+        <section className="mb-10">
+          <div className="mb-6 flex items-center gap-4">
+            <Image
+              src="/brand/aegis-mark.svg"
+              alt="Aegis logo mark"
+              width={72}
+              height={72}
+              priority
             />
-            <p className="font-body text-sm text-aegis-gray" role="status" aria-live="polite">
-              {LOADING_MESSAGES[loadingMessageIndex]}
-            </p>
+            <div>
+              <p className="font-body text-xs uppercase tracking-[0.28em] text-aegis-teal">
+                About Aegis
+              </p>
+              <h1 className="font-heading text-4xl font-bold tracking-tight md:text-5xl">
+                Safer creative intelligence for media buyers.
+              </h1>
+            </div>
           </div>
-        )}
 
-        {error && (
-          <p className="font-body text-sm text-risk-high mb-8">{error}</p>
-        )}
+          <p className="max-w-3xl font-body text-lg leading-8 text-aegis-gray">
+            Aegis is a small AI pipeline for turning competitor landing pages into
+            testable ad ideas with risk review built in. It was built as an MVP:
+            one URL in, a clearer read on the angle, five ad variations, and safer
+            copy-ready rewrites out.
+          </p>
+        </section>
 
-        {result?.meta?.stages && <PipelineStatusBadges stages={result.meta.stages} />}
-        {result?.meta?.stages && <FallbackNotice stages={result.meta.stages} />}
+        <section className="mb-10 grid gap-4 md:grid-cols-3">
+          {pipeline.map((item) => {
+            const Icon = item.icon;
 
-        {result && (
-          <>
-            <KpiCards kpi={result.kpi} />
-            <SpyglassSection spyglass={result.spyglass} />
-            <AdsSection ads={result.ads} />
-            <ShieldSection shield={result.shield} ads={result.ads} />
-          </>
-        )}
+            return (
+              <Card key={item.title}>
+                <Icon className="mb-4 text-aegis-teal" size={24} />
+                <h2 className="mb-2 font-heading text-xl font-semibold text-aegis-silver">
+                  {item.title}
+                </h2>
+                <p className="font-body text-sm leading-6 text-aegis-gray">
+                  {item.body}
+                </p>
+              </Card>
+            );
+          })}
+        </section>
 
-        <PipelineFlow hasResult={Boolean(result)} />
-      </main>
-    </div>
+        <section className="mb-10 grid gap-6 md:grid-cols-[1.1fr_0.9fr]">
+          <Card>
+            <h2 className="mb-3 font-heading text-2xl font-semibold">
+              Why this exists
+            </h2>
+            <div className="space-y-4 font-body text-sm leading-7 text-aegis-gray">
+              <p>
+                Media buyers often move between competitive research, creative
+                drafting, and policy checking as separate tasks. Aegis compresses
+                those steps into one workflow so the buyer can spend more time
+                judging the strategy and less time wrangling raw copy.
+              </p>
+              <p>
+                The goal is not to replace human judgment or guarantee ad approval.
+                Shield is a heuristic risk-triage layer that catches obvious issues
+                before copy gets handed off, tested, or submitted for review.
+              </p>
+            </div>
+          </Card>
+
+          <Card>
+            <h2 className="mb-4 font-heading text-2xl font-semibold">
+              Build principles
+            </h2>
+            <ul className="space-y-3">
+              {principles.map((principle) => (
+                <li
+                  key={principle}
+                  className="flex gap-3 font-body text-sm text-aegis-gray"
+                >
+                  <CheckCircle2
+                    className="mt-0.5 shrink-0 text-aegis-teal"
+                    size={17}
+                  />
+                  <span>{principle}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </section>
+
+        <section className="rounded-2xl border border-aegis-border bg-aegis-card p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="font-heading text-2xl font-semibold">
+                Try the pipeline
+              </h2>
+              <p className="mt-2 font-body text-sm text-aegis-gray">
+                Start with sample mode, paste manual page text, or run a live URL
+                through Firecrawl.
+              </p>
+            </div>
+
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center justify-center rounded-lg bg-aegis-teal px-4 py-2.5 font-body text-sm font-medium text-aegis-black transition-colors hover:bg-aegis-teal/80"
+            >
+              Open dashboard
+            </Link>
+          </div>
+        </section>
+      </div>
+    </main>
   );
 }

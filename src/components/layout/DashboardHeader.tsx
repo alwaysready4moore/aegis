@@ -20,7 +20,7 @@ export function DashboardHeader({ onNewPipeline }: DashboardHeaderProps) {
 
       <div className="flex shrink-0 items-center gap-4">
         <Link
-          href="/about"
+          href="/"
           className="font-body text-sm text-aegis-gray transition-colors hover:text-aegis-teal"
         >
           About
