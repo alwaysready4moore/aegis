@@ -1,22 +1,47 @@
-import type { ShieldReview, AdVariation } from "./types";
+import type { ShieldReview, AdVariation, RiskLevel } from "./types";
 
 export type ShieldValidationResult = { valid: true } | { valid: false; reason: string };
 
+const RISK_RANK: Record<RiskLevel, number> = {
+  none: 0,
+  low: 1,
+  medium: 2,
+  high: 3,
+};
+
+function highestRiskLevel(levels: RiskLevel[]): RiskLevel {
+  if (levels.length === 0) return "none";
+  return levels.reduce<RiskLevel>(
+    (highest, level) => (RISK_RANK[level] > RISK_RANK[highest] ? level : highest),
+    "none"
+  );
+}
+
+function normalized(value: string): string {
+  return value.trim().toLowerCase();
+}
+
 /**
- * ShieldReviewSchema only validates shape (the right fields, the right
- * types). It can't know whether every generated ad actually got reviewed,
- * or whether a flagged phrase really appears in the ad it's attached to.
- * Those are the two correctness guarantees this product promises — see the
- * "Important Shield behavior" requirements — so they're enforced here as a
- * second gate after schema validation, rather than left to the prompt's
- * instructions alone (which Gemini won't always follow exactly).
+ * Cross-object trust gate for Shield.
+ *
+ * Schema validation proves the response has the right shape. This validator
+ * proves that the response is internally consistent with the ads Aegis
+ * actually generated before any Shield output is displayed as trustworthy.
  */
 export function validateShieldReview(
   shieldReview: ShieldReview,
   ads: AdVariation[]
 ): ShieldValidationResult {
   const adIds = ads.map((ad) => ad.id);
-  const reviewedIds = shieldReview.reviewedAds.map((r) => r.adVariationId);
+  const reviewedIds = shieldReview.reviewedAds.map((review) => review.adVariationId);
+
+  if (new Set(adIds).size !== adIds.length) {
+    return { valid: false, reason: "Generated ads contain duplicate IDs." };
+  }
+
+  if (new Set(reviewedIds).size !== reviewedIds.length) {
+    return { valid: false, reason: "Shield returned duplicate reviewed-ad IDs." };
+  }
 
   if (reviewedIds.length !== adIds.length) {
     return {
@@ -40,42 +65,98 @@ export function validateShieldReview(
   }
 
   const adsById = new Map(ads.map((ad) => [ad.id, ad]));
+  const findingIds = new Set<string>();
+  let derivedRiskCount = 0;
+  let derivedSaferAds = 0;
 
   for (const reviewedAd of shieldReview.reviewedAds) {
     const ad = adsById.get(reviewedAd.adVariationId);
-    if (!ad) continue; // unreachable given the coverage check above, but keeps TS satisfied
+    if (!ad) continue;
 
-    const adText = `${ad.hook} ${ad.body} ${ad.cta}`.toLowerCase();
+    const adText = normalized(`${ad.hook} ${ad.body} ${ad.cta}`);
+    const finalText = normalized(reviewedAd.finalCompliantVersion);
 
-    for (const finding of reviewedAd.findings) {
-      if (!adText.includes(finding.flaggedPhrase.toLowerCase())) {
-        return {
-          valid: false,
-          reason: `Shield flagged "${finding.flaggedPhrase}" on ad "${ad.id}", but that phrase does not appear in the ad's hook/body/cta.`,
-        };
-      }
-    }
-
-    if (reviewedAd.findings.length === 0 && reviewedAd.overallRiskLevel !== "none") {
-      return {
-        valid: false,
-        reason: `Ad "${ad.id}" has no findings but overallRiskLevel is "${reviewedAd.overallRiskLevel}" instead of "none".`,
-      };
-    }
-
-    if (reviewedAd.findings.length > 0 && reviewedAd.overallRiskLevel === "none") {
-      return {
-        valid: false,
-        reason: `Ad "${ad.id}" has findings but overallRiskLevel is "none".`,
-      };
-    }
-
-    if (reviewedAd.finalCompliantVersion.trim().length === 0) {
+    if (!finalText) {
       return {
         valid: false,
         reason: `Ad "${ad.id}" has an empty finalCompliantVersion.`,
       };
     }
+
+    derivedSaferAds += 1;
+    derivedRiskCount += reviewedAd.findings.length;
+
+    for (const finding of reviewedAd.findings) {
+      if (findingIds.has(finding.id)) {
+        return { valid: false, reason: `Shield returned duplicate finding id "${finding.id}".` };
+      }
+      findingIds.add(finding.id);
+
+      if (finding.adVariationId !== reviewedAd.adVariationId) {
+        return {
+          valid: false,
+          reason: `Finding "${finding.id}" points to ad "${finding.adVariationId}" instead of its parent ad "${reviewedAd.adVariationId}".`,
+        };
+      }
+
+      const flaggedPhrase = normalized(finding.flaggedPhrase);
+      const suggestedRewrite = normalized(finding.suggestedRewrite);
+
+      if (!flaggedPhrase || !adText.includes(flaggedPhrase)) {
+        return {
+          valid: false,
+          reason: `Shield flagged "${finding.flaggedPhrase}" on ad "${ad.id}", but that phrase does not appear in the ad's hook/body/cta.`,
+        };
+      }
+
+      if (finding.riskLevel === "none") {
+        return {
+          valid: false,
+          reason: `Finding "${finding.id}" uses riskLevel "none"; findings must identify an actual risk.`,
+        };
+      }
+
+      if (finding.status === "rewritten") {
+        if (finalText.includes(flaggedPhrase)) {
+          return {
+            valid: false,
+            reason: `Finding "${finding.id}" is marked rewritten, but the risky phrase still appears in finalCompliantVersion.`,
+          };
+        }
+
+        if (!suggestedRewrite || !finalText.includes(suggestedRewrite)) {
+          return {
+            valid: false,
+            reason: `Finding "${finding.id}" is marked rewritten, but its suggested rewrite was not applied in finalCompliantVersion.`,
+          };
+        }
+      }
+    }
+
+    const expectedOverallRisk = highestRiskLevel(
+      reviewedAd.findings.map((finding) => finding.riskLevel)
+    );
+
+    if (reviewedAd.overallRiskLevel !== expectedOverallRisk) {
+      return {
+        valid: false,
+        reason: `Ad "${ad.id}" reports overallRiskLevel "${reviewedAd.overallRiskLevel}" but its findings require "${expectedOverallRisk}".`,
+      };
+    }
+  }
+
+  if (shieldReview.totalRisksChecked !== derivedRiskCount) {
+    return {
+      valid: false,
+      reason: `Shield reports totalRisksChecked=${shieldReview.totalRisksChecked}, but ${derivedRiskCount} findings were actually returned.`,
+    };
+  }
+
+  if (shieldReview.saferAdsDelivered !== derivedSaferAds) {
+    return {
+      valid: false,
+      reason: `Shield reports saferAdsDelivered=${shieldReview.saferAdsDelivered}, but ${derivedSaferAds} reviewed ads contain final copy.`,
+    };
   }
 
   return { valid: true };

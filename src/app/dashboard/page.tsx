@@ -149,6 +149,22 @@ export default function DashboardPage() {
           <p className="font-body text-sm text-risk-high mb-8">{error}</p>
         )}
 
+        {result && (
+          <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 font-body text-xs text-aegis-gray">
+            <span className="uppercase tracking-wide text-aegis-gray/80">Run source</span>
+            <span className="text-aegis-silver">
+              {result.sourceInputMode === "sample"
+                ? "Sample analysis"
+                : result.sourceInputMode === "manual"
+                  ? "Manual page text"
+                  : "Live URL"}
+            </span>
+            {result.meta?.stages?.extraction.note && (
+              <span className="text-risk-medium">· {result.meta.stages.extraction.note}</span>
+            )}
+          </div>
+        )}
+
         {result?.meta?.stages && <PipelineStatusBadges stages={result.meta.stages} />}
         {result?.meta?.stages && <FallbackNotice stages={result.meta.stages} />}
 
