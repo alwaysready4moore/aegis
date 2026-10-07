@@ -22,7 +22,6 @@ import type {
   AnalysisMeta,
   StageStatus,
   ExtractionStatus,
-  Platform,
   SpyglassResult,
   AdVariationList,
   ShieldReview,
@@ -32,7 +31,6 @@ const SKIPPED: StageStatus = { source: "skipped" };
 const LIVE: StageStatus = { source: "live" };
 
 const EXTRACTION_SKIPPED: ExtractionStatus = { source: "skipped" };
-const EXTRACTION_MANUAL: ExtractionStatus = { source: "manual" };
 const EXTRACTION_FIRECRAWL: ExtractionStatus = { source: "firecrawl" };
 
 function fallback(reason: string): StageStatus {
@@ -132,7 +130,7 @@ export async function POST(request: Request) {
 
   const { sourceUrl, platform: targetPlatform, pageText } = parsedInput.data;
   const targetUrl = sourceUrl ?? null;
-  const sourceInputMode = pageText ? "manual" : "url";
+  const sourceInputMode = pageText ? ("manual" as const) : ("url" as const);
 
   // --- Resolve the page text: manual text takes priority; otherwise scrape it. ---
   let resolvedPageText: string;
@@ -364,7 +362,12 @@ export async function POST(request: Request) {
     spyglass: liveSpyglass,
     ads: liveAds,
     shield: liveShield,
-    kpi: sampleAnalysis.kpi,
+    kpi: {
+      anglesFound: new Set(liveAds.map((ad) => ad.angle)).size,
+      risksChecked: liveShield.totalRisksChecked,
+      saferAdsDelivered: liveShield.saferAdsDelivered,
+      pipelineHealth: 100,
+    },
     meta: buildMeta("live", extractionStatus, LIVE, LIVE, LIVE),
   });
 }
