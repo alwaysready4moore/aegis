@@ -16,6 +16,7 @@ import {
   ExtractionSourceSchema,
   ExtractionStatusSchema,
   AnalysisMetaSchema,
+  SourceInputModeSchema,
   AegisAnalysisResultSchema,
 } from "./schemas";
 
@@ -35,6 +36,7 @@ export type StageStatus = z.infer<typeof StageStatusSchema>;
 export type ExtractionSource = z.infer<typeof ExtractionSourceSchema>;
 export type ExtractionStatus = z.infer<typeof ExtractionStatusSchema>;
 export type AnalysisMeta = z.infer<typeof AnalysisMetaSchema>;
+export type SourceInputMode = z.infer<typeof SourceInputModeSchema>;
 export type AegisAnalysisResult = z.infer<typeof AegisAnalysisResultSchema>;
 
 // UI-only state for sidebar navigation / scroll tracking — not part of the
