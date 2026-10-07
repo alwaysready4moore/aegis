@@ -21,8 +21,47 @@ export const RiskCategorySchema = z.enum([
   "intellectual_property_risk",
 ]);
 
+const optionalTrimmedUrl = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") return value;
+    const trimmed = value.trim();
+    return trimmed.length === 0 ? undefined : trimmed;
+  },
+  z.string().url().optional()
+);
+
+const optionalTrimmedText = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") return value;
+    const trimmed = value.trim();
+    return trimmed.length === 0 ? undefined : trimmed;
+  },
+  z.string().max(50_000, "Manual page text is too large to process.").optional()
+);
+
+/**
+ * API-boundary schema for live analysis requests.
+ * A live request needs a supported platform plus either a valid URL or manual text.
+ * Manual text may be used without a URL.
+ */
+export const AnalyzeRequestSchema = z
+  .object({
+    sourceUrl: optionalTrimmedUrl,
+    platform: PlatformSchema,
+    pageText: optionalTrimmedText,
+  })
+  .superRefine((value, ctx) => {
+    if (!value.sourceUrl && !value.pageText) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["sourceUrl"],
+        message: "Provide a valid competitor URL or paste manual page text.",
+      });
+    }
+  });
+
 export const SpyglassResultSchema = z.object({
-  sourceUrl: z.string().url(),
+  sourceUrl: z.string().url().nullable(),
   platform: PlatformSchema,
   offerSummary: z.string(),
   positioningSummary: z.string(),
@@ -45,12 +84,6 @@ export const AdVariationSchema = z.object({
   reasoning: z.string(),
 });
 
-// The contest MVP promises exactly 5 generated ad variations, and the
-// dashboard's Generated Ads section is built around that count. Enforcing
-// it here means a Gemini response with 3 or 7 ads is treated the same as
-// any other malformed response: a schema validation failure that falls back
-// to sampleAnalysis.ads, rather than something the UI has to handle as a
-// variable-length case.
 export const AdVariationListSchema = z.array(AdVariationSchema).length(5);
 
 export const ShieldFindingSchema = z.object({
@@ -84,11 +117,6 @@ export const KpiSummarySchema = z.object({
   pipelineHealth: z.number(),
 });
 
-// Per-stage status for one pipeline step (Spyglass, ad generation, or
-// Shield). "skipped" covers both pure sample mode (nothing was attempted)
-// and stages that come after one that already fell back (e.g. ad generation
-// is "skipped" when Spyglass itself failed, since we never call Gemini for
-// ads in that case).
 export const StageSourceSchema = z.enum(["live", "fallback", "skipped"]);
 
 export const StageStatusSchema = z.object({
@@ -96,31 +124,14 @@ export const StageStatusSchema = z.object({
   fallbackReason: z.string().optional(),
 });
 
-// Page-text extraction has one more distinct state than the other stages:
-// text can come from the person typing it in manually, from a live
-// Firecrawl scrape, be skipped entirely (pure sample mode), or fall back to
-// sample data because a live attempt failed. "live"/"fallback"/"skipped"
-// alone can't express "manual" vs "firecrawl" as two different live paths,
-// so extraction gets its own small schema rather than reusing StageSourceSchema.
 export const ExtractionSourceSchema = z.enum(["manual", "firecrawl", "skipped", "fallback"]);
 
 export const ExtractionStatusSchema = z.object({
   source: ExtractionSourceSchema,
   fallbackReason: z.string().optional(),
+  note: z.string().optional(),
 });
 
-// Reports whether a result came from the sample fixture or a live Gemini
-// call, and why a fallback happened if it did.
-//
-// `source`, `usedFallback`, and `fallbackReason` are the original Stage 3a
-// fields, kept with their original meaning so the existing dashboard notice
-// ("Aegis used sample fallback: ...") keeps working unmodified — it reads
-// `usedFallback` and `fallbackReason` as a rollup across the whole pipeline.
-//
-// `stages` is the additive piece: a per-stage breakdown so the underlying
-// data (and any future UI) can tell "extraction was live but Spyglass
-// failed" apart from "everything fell back". Optional so any older result
-// without it still validates.
 export const AnalysisMetaSchema = z.object({
   source: z.enum(["sample", "live"]),
   usedFallback: z.boolean(),
@@ -135,10 +146,13 @@ export const AnalysisMetaSchema = z.object({
     .optional(),
 });
 
+export const SourceInputModeSchema = z.enum(["url", "manual", "sample"]);
+
 export const AegisAnalysisResultSchema = z.object({
   id: z.string(),
   createdAt: z.string(),
-  sourceUrl: z.string().url(),
+  sourceUrl: z.string().url().nullable(),
+  sourceInputMode: SourceInputModeSchema,
   platform: PlatformSchema,
   spyglass: SpyglassResultSchema,
   ads: z.array(AdVariationSchema),
