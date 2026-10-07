@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import {
   AegisAnalysisResultSchema,
+  AnalyzeRequestSchema,
   SpyglassResultSchema,
   AdVariationListSchema,
   ShieldReviewSchema,
@@ -14,7 +15,7 @@ import {
 } from "@/lib/prompts";
 import { parseAiJson, stripCodeFences } from "@/lib/ai-parsing";
 import { generateJsonContent } from "@/lib/gemini";
-import { scrapeUrlToText, truncateText } from "@/lib/firecrawl";
+import { DEFAULT_MAX_EXTRACTED_CHARS, scrapeUrlToText, truncateText } from "@/lib/firecrawl";
 import { validateShieldReview } from "@/lib/shield-validation";
 import type {
   AegisAnalysisResult,
@@ -26,18 +27,6 @@ import type {
   AdVariationList,
   ShieldReview,
 } from "@/lib/types";
-
-interface AnalyzeRequestBody {
-  sourceUrl?: string;
-  platform?: Platform;
-  /**
-   * Optional raw page text. If present, it's used directly and Firecrawl is
-   * skipped entirely (useful for testing without burning Firecrawl calls).
-   * If absent but sourceUrl/platform are present, Firecrawl scrapes
-   * sourceUrl to get this text instead.
-   */
-  pageText?: string;
-}
 
 const SKIPPED: StageStatus = { source: "skipped" };
 const LIVE: StageStatus = { source: "live" };
@@ -110,74 +99,64 @@ function respond(result: AegisAnalysisResult) {
 }
 
 export async function POST(request: Request) {
-  let body: AnalyzeRequestBody = {};
-  try {
-    body = (await request.json()) as AnalyzeRequestBody;
-  } catch {
-    // No body, or invalid JSON — this is the expected path whenever a
-    // caller (e.g. "Try Sample Analysis") sends a bodyless POST.
-    body = {};
-  }
+  const rawBody = await request.text();
 
-  const { sourceUrl, platform, pageText } = body;
-  const hasManualText = Boolean(pageText && pageText.trim().length > 0);
-  const hasTarget = Boolean(sourceUrl && platform);
-  const isCompletelyEmpty = !hasManualText && !sourceUrl && !platform;
-
-  // --- Nothing at all was sent — pure Stage 1 sample mode, unchanged. ---
-  if (isCompletelyEmpty) {
+  // A bodyless POST is the explicit sample-analysis path used by the UI.
+  if (!rawBody.trim()) {
     return respond({
       ...sampleAnalysis,
       meta: buildMeta("sample", EXTRACTION_SKIPPED, SKIPPED, SKIPPED, SKIPPED),
     });
   }
 
-  // --- Manual pageText was given, but not enough to run live (missing sourceUrl/platform). ---
-  if (hasManualText && !hasTarget) {
-    return respond({
-      ...sampleAnalysis,
-      meta: buildMeta(
-        "sample",
-        extractionFallback(
-          "pageText was provided without a valid sourceUrl and platform, so sample data was returned instead."
-        ),
-        SKIPPED,
-        SKIPPED,
-        SKIPPED
-      ),
-    });
+  let rawInput: unknown;
+  try {
+    rawInput = JSON.parse(rawBody);
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid request body.", message: "Send valid JSON, or use a bodyless POST for sample mode." },
+      { status: 400 }
+    );
   }
 
-  // --- No manual text, and sourceUrl/platform are incomplete (one given, not both). ---
-  if (!hasManualText && !hasTarget) {
-    return respond({
-      ...sampleAnalysis,
-      meta: buildMeta(
-        "sample",
-        extractionFallback(
-          "sourceUrl or platform was missing, so sample data was returned instead."
-        ),
-        SKIPPED,
-        SKIPPED,
-        SKIPPED
-      ),
-    });
+  const parsedInput = AnalyzeRequestSchema.safeParse(rawInput);
+  if (!parsedInput.success) {
+    return NextResponse.json(
+      {
+        error: "Invalid analysis request.",
+        details: parsedInput.error.flatten().fieldErrors,
+      },
+      { status: 400 }
+    );
   }
 
-  // At this point sourceUrl and platform are both present (hasTarget is
-  // true). TypeScript doesn't know that from hasTarget alone, so assert it
-  // here once instead of repeating non-null checks below.
-  const targetUrl = sourceUrl as string;
-  const targetPlatform = platform as Platform;
+  const { sourceUrl, platform: targetPlatform, pageText } = parsedInput.data;
+  const targetUrl = sourceUrl ?? null;
+  const sourceInputMode = pageText ? "manual" : "url";
 
   // --- Resolve the page text: manual text takes priority; otherwise scrape it. ---
   let resolvedPageText: string;
   let extractionStatus: ExtractionStatus;
 
-  if (hasManualText) {
-    resolvedPageText = pageText as string;
-    extractionStatus = EXTRACTION_MANUAL;
+  if (pageText) {
+    const wasTruncated = pageText.length > DEFAULT_MAX_EXTRACTED_CHARS;
+    resolvedPageText = truncateText(pageText);
+    extractionStatus = {
+      source: "manual",
+      ...(wasTruncated
+        ? {
+            note: `Manual page text was truncated to ${DEFAULT_MAX_EXTRACTED_CHARS.toLocaleString()} characters before analysis.`,
+          }
+        : {}),
+    };
   } else {
+    if (!targetUrl) {
+      return NextResponse.json(
+        { error: "Invalid analysis request.", message: "Provide a valid URL or paste manual page text." },
+        { status: 400 }
+      );
+    }
+
     const scrapeResult = await scrapeUrlToText(targetUrl);
 
     if (!scrapeResult.success) {
@@ -186,13 +165,14 @@ export async function POST(request: Request) {
         id: randomUUID(),
         createdAt: new Date().toISOString(),
         sourceUrl: targetUrl,
+        sourceInputMode,
         platform: targetPlatform,
         meta: buildMeta(
           "live",
           extractionFallback(`Firecrawl: ${scrapeResult.message}`),
-          SKIPPED,
-          SKIPPED,
-          SKIPPED
+          fallback("Sample Spyglass shown because page extraction did not complete."),
+          fallback("Sample ads shown because page extraction did not complete."),
+          fallback("Sample Shield review shown because page extraction did not complete.")
         ),
       });
     }
@@ -216,13 +196,14 @@ export async function POST(request: Request) {
       id: randomUUID(),
       createdAt: new Date().toISOString(),
       sourceUrl: targetUrl,
+      sourceInputMode,
       platform: targetPlatform,
       meta: buildMeta(
         "live",
         extractionStatus,
         fallback(`Spyglass: Gemini call failed: ${spyglassCall.message}`),
-        SKIPPED,
-        SKIPPED
+        fallback("Sample ads shown because Spyglass did not complete."),
+        fallback("Sample Shield review shown because Spyglass did not complete.")
       ),
     });
   }
@@ -239,8 +220,15 @@ export async function POST(request: Request) {
       id: randomUUID(),
       createdAt: new Date().toISOString(),
       sourceUrl: targetUrl,
+      sourceInputMode,
       platform: targetPlatform,
-      meta: buildMeta("live", extractionStatus, fallback(reason), SKIPPED, SKIPPED),
+      meta: buildMeta(
+        "live",
+        extractionStatus,
+        fallback(reason),
+        fallback("Sample ads shown because Spyglass did not complete."),
+        fallback("Sample Shield review shown because Spyglass did not complete.")
+      ),
     });
   }
 
@@ -255,6 +243,7 @@ export async function POST(request: Request) {
       id: randomUUID(),
       createdAt: new Date().toISOString(),
       sourceUrl: targetUrl,
+      sourceInputMode,
       platform: targetPlatform,
       spyglass: liveSpyglass,
       ads: sampleAnalysis.ads,
@@ -265,7 +254,7 @@ export async function POST(request: Request) {
         extractionStatus,
         LIVE,
         fallback(`Ad generation: Gemini call failed: ${adCall.message}`),
-        SKIPPED
+        fallback("Sample Shield review shown because live ad generation did not complete.")
       ),
     });
   }
@@ -281,12 +270,19 @@ export async function POST(request: Request) {
       id: randomUUID(),
       createdAt: new Date().toISOString(),
       sourceUrl: targetUrl,
+      sourceInputMode,
       platform: targetPlatform,
       spyglass: liveSpyglass,
       ads: sampleAnalysis.ads,
       shield: sampleAnalysis.shield,
       kpi: sampleAnalysis.kpi,
-      meta: buildMeta("live", extractionStatus, LIVE, fallback(reason), SKIPPED),
+      meta: buildMeta(
+        "live",
+        extractionStatus,
+        LIVE,
+        fallback(reason),
+        fallback("Sample Shield review shown because live ad generation did not complete.")
+      ),
     });
   }
 
@@ -301,6 +297,7 @@ export async function POST(request: Request) {
       id: randomUUID(),
       createdAt: new Date().toISOString(),
       sourceUrl: targetUrl,
+      sourceInputMode,
       platform: targetPlatform,
       spyglass: liveSpyglass,
       ads: liveAds,
@@ -327,6 +324,7 @@ export async function POST(request: Request) {
       id: randomUUID(),
       createdAt: new Date().toISOString(),
       sourceUrl: targetUrl,
+      sourceInputMode,
       platform: targetPlatform,
       spyglass: liveSpyglass,
       ads: liveAds,
@@ -346,6 +344,7 @@ export async function POST(request: Request) {
       id: randomUUID(),
       createdAt: new Date().toISOString(),
       sourceUrl: targetUrl,
+      sourceInputMode,
       platform: targetPlatform,
       spyglass: liveSpyglass,
       ads: liveAds,
@@ -360,6 +359,7 @@ export async function POST(request: Request) {
     id: randomUUID(),
     createdAt: new Date().toISOString(),
     sourceUrl: targetUrl,
+    sourceInputMode,
     platform: targetPlatform,
     spyglass: liveSpyglass,
     ads: liveAds,

@@ -4,6 +4,7 @@ export const sampleAnalysis: AegisAnalysisResult = {
   id: "sample-001",
   createdAt: "2026-06-25T09:00:00.000Z",
   sourceUrl: "https://competitor.com/products/fat-burner-pro",
+  sourceInputMode: "sample",
   platform: "meta",
 
   spyglass: {

@@ -8,6 +8,7 @@ import { cn, platformLabels } from "@/lib/utils";
 import type { Platform } from "@/lib/types";
 
 const platforms: Platform[] = ["meta", "google", "tiktok", "taboola", "general"];
+const MANUAL_TEXT_LIMIT = 10_000;
 
 interface InputCardProps {
   url: string;
@@ -51,6 +52,17 @@ export function InputCard({
       );
       return;
     }
+    if (url.trim()) {
+      try {
+        new URL(url.trim());
+      } catch {
+        setValidationMessage(
+          "That URL does not look valid. Correct it, or clear the URL field and analyze the pasted text by itself."
+        );
+        return;
+      }
+    }
+
     setValidationMessage(null);
     onAnalyze();
   }
@@ -106,16 +118,20 @@ export function InputCard({
         </summary>
         <div className="px-3.5 pb-3.5">
           <p className="font-body text-xs text-aegis-gray/80 mb-2 leading-relaxed">
-            For testing without Firecrawl, or if a page can&apos;t be scraped. Pasting text here
-            bypasses Firecrawl entirely — Aegis uses this text instead of fetching the URL above.
+            For testing without Firecrawl, or if a page can&apos;t be scraped. A URL is optional
+            when manual text is provided. Pasted text bypasses Firecrawl entirely.
           </p>
           <textarea
             value={pageText}
             onChange={(e) => handlePageTextChange(e.target.value)}
             placeholder="Paste the competitor's landing page copy here (headline, body text, claims, CTA, etc.)"
             rows={5}
+            maxLength={MANUAL_TEXT_LIMIT}
             className="w-full rounded-lg border border-aegis-border bg-aegis-black px-3 py-2.5 font-body text-sm text-aegis-silver placeholder:text-aegis-gray/60 focus:outline-none focus:border-aegis-teal resize-y"
           />
+          <div className="mt-1.5 text-right font-body text-[11px] text-aegis-gray/70">
+            {pageText.length.toLocaleString()} / {MANUAL_TEXT_LIMIT.toLocaleString()} characters
+          </div>
         </div>
       </details>
 
